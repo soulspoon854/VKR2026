@@ -1,165 +1,91 @@
-# InfoSec Course — платформа для прохождения курса по информационной безопасности
+# InfoSec Course
 
-SPA на **React 19 + TanStack Start (Vite 7)** с тёмной темой, Stepik-подобной навигацией по шагам и квизом из 10 вопросов. Прогресс пользователя сохраняется в `localStorage`. Серверный рантайм собирается под Cloudflare Workers (через `@cloudflare/vite-plugin`), поэтому проект можно запускать как через обычный Vite dev server, так и через `wrangler dev` поверх production-сборки.
+SPA-курс по информационной безопасности: 10 вопросов с проверкой ответов и сохранением прогресса в `localStorage`.
 
----
-
-## 1. Требования
+## Требования
 
 - **Node.js ≥ 18.17** (рекомендуется 20 LTS) — `node -v`
-- **Bun ≥ 1.1** (основной менеджер пакетов в проекте) — `bun -v`
-  - Можно использовать `npm` / `pnpm` — команды эквивалентны (`npm install`, `npm run dev` и т. д.).
-- **Wrangler ≥ 3** (опционально, для шага 4) — ставится разово: `bun add -d wrangler` или `npm i -g wrangler`.
-- Git и любой современный браузер (Chrome / Firefox / Edge).
+- Один из менеджеров пакетов: **Bun ≥ 1.1** (предпочтительно), `npm`, `pnpm` или `yarn`
+- Любой современный браузер
 
-Проверка окружения:
+Установить Bun (если ещё нет):
 
 ```bash
-node -v && bun -v
+curl -fsSL https://bun.sh/install | bash
 ```
+
+Никакие переменные окружения, `.env` файлы и внешние сервисы для запуска не нужны — данные курса лежат в `src/data/quiz.ts`, прогресс хранится в `localStorage` браузера.
 
 ---
 
-## 2. Установка
+## Запуск с нуля (3 шага)
+
+Из корня проекта (там, где лежит `package.json`):
 
 ```bash
-# 1. Получить код (через GitHub-интеграцию Lovable: GitHub → Connect)
-git clone <your-repo-url>
-cd <project-folder>
-
-# 2. Установить зависимости
+# 1. Установить зависимости
 bun install
-# или: npm install
-```
+# или: npm install / pnpm install / yarn
 
-Никаких `.env` для базового запуска не требуется — данные курса лежат в `src/data/quiz.ts`, прогресс пишется в `localStorage`. Lovable Cloud в проекте не подключён.
-
----
-
-## 3. Запуск через Vite (режим разработки)
-
-Это основной способ для локальной разработки: горячая перезагрузка, быстрый HMR, понятные ошибки.
-
-```bash
+# 2. Запустить dev-сервер
 bun run dev
 # или: npm run dev
+
+# 3. Открыть в браузере
+#    http://localhost:8080
 ```
 
-- По умолчанию открывается на **http://localhost:8080** (порт задаёт пресет `@lovable.dev/vite-tanstack-config`; если порт занят, Vite выберет соседний и выведет ссылку в терминале).
-- Файловый роутинг — `src/routes/` (плагин TanStack Router сам генерирует `src/routeTree.gen.ts`, его править руками не нужно).
-- Стили — Tailwind CSS v4 через `src/styles.css`.
+Порт по умолчанию — **8080**
 
-Полезные команды:
+Горячая перезагрузка (HMR) работает из коробки — правьте файлы в `src/` и страница обновится автоматически.
 
-```bash
-bun run lint        # ESLint
-bun run format      # Prettier
-bun run build       # production-сборка (вывод в .output/ для Worker и dist/ для клиента)
-bun run preview     # локальный предпросмотр собранного бандла средствами Vite
-```
+---
 
-### Типовые проблемы
+## Доступные скрипты
 
-| Симптом | Что делать |
+| Команда | Что делает |
 |---|---|
-| Порт 8080 занят | Завершите процесс (`lsof -i :8080`) либо запустите `PORT=5173 bun run dev`. |
-| `Failed to resolve import` | Проверьте, что файл существует и путь использует алиас `@/...` (см. `tsconfig.json`). |
-| Пустая страница / 404 на `/` | Убедитесь, что есть `src/routes/index.tsx` и `src/routes/__root.tsx`; не редактируйте `routeTree.gen.ts`. |
-| Не сохраняется прогресс | Проверьте, что в DevTools → Application → Local Storage есть ключ `infosec-course-progress-v1`. Сбросить — кнопкой «Начать заново» в UI или вручную удалить ключ. |
+| `bun run dev` | Vite dev-сервер с HMR → `http://localhost:8080` |
+| `bun run build` | Production-сборка (клиент + Worker bundle) |
+| `bun run build:dev` | Сборка в development-режиме (для отладки бандла) |
+| `bun run preview` | Локальный предпросмотр production-сборки → `http://localhost:4173` |
+| `bun run lint` | Проверка ESLint |
+| `bun run format` | Автоформатирование Prettier |
 
----
+Замените `bun run` на `npm run` / `pnpm` / `yarn`, если используете другой менеджер.
 
-## 4. Запуск через `wrangler dev` (эмуляция Cloudflare Workers)
 
-Этот режим повторяет production-окружение: SSR-обработчик из `src/server.ts` запускается в локальной реализации Workers runtime (workerd). Используйте его, чтобы проверить SSR, заголовки, поведение `nodejs_compat` и реальные ошибки 500 перед публикацией.
 
-### 4.1. Установить Wrangler (один раз)
-
-```bash
-bun add -d wrangler
-# или глобально: npm i -g wrangler
-```
-
-### 4.2. Собрать production-бандл
-
-`wrangler dev` запускает уже собранный Worker, поэтому сначала нужен build:
-
-```bash
-bun run build
-```
-
-После сборки появятся:
-- `dist/client/` — статические ассеты (HTML/JS/CSS),
-- `dist/server/` или `.output/` — серверный бандл Worker'а (точка входа задана в `wrangler.jsonc` → `"main": "src/server.ts"`, Vite-плагин Cloudflare переписывает её на собранный файл).
-
-### 4.3. Запустить Worker локально
-
-```bash
-bunx wrangler dev
-# или, если ставили глобально: wrangler dev
-```
-
-- По умолчанию слушает **http://localhost:8787**.
-- Использует `compatibility_date` и флаг `nodejs_compat` из `wrangler.jsonc`.
-- Логи (`console.log`, ошибки SSR) выводятся прямо в терминал; ошибки рендеринга оборачиваются брендированной 500-страницей из `src/lib/error-page.ts`.
-
-### 4.4. Цикл «правка → проверка»
-
-`wrangler dev` **не имеет HMR** — он отдаёт собранный бандл. Для быстрой итерации:
-
-1. В одном терминале держите `bun run build --watch` (Vite пересоберёт бандл при изменениях).
-2. В другом — `bunx wrangler dev`. После каждой пересборки перезагрузите страницу.
-
-Для повседневной разработки используйте `bun run dev` (раздел 3); `wrangler dev` нужен только для верификации Worker-окружения.
-
-### 4.5. Деплой (опционально)
-
-Если вы хотите задеплоить вручную мимо Lovable:
-
-```bash
-bunx wrangler deploy
-```
-
-Lovable публикует проект автоматически по кнопке **Publish** в редакторе — ручной `wrangler deploy` для этого не нужен.
-
----
-
-## 5. Структура проекта (кратко)
+## Структура проекта
 
 ```text
 src/
   routes/
-    __root.tsx         # корневой layout (html/head/body)
+    __root.tsx         # корневой layout (html/head/body shell)
     index.tsx          # домашняя страница с квизом
   components/
-    course/            # StepIcon, VideoStep и т.п.
-    ui/                # shadcn/ui компоненты
+    course/            # компоненты курса (StepIcon, VideoStep)
+    ui/                # shadcn/ui примитивы
   data/
     quiz.ts            # 10 вопросов курса
     course.ts          # метаданные курса
-  lib/
-    error-capture.ts   # перехват SSR-ошибок
-    error-page.ts      # HTML 500-страницы
+  lib/                 # утилиты, обработка ошибок
+  router.tsx           # настройка TanStack Router
   server.ts            # SSR-обёртка (точка входа Worker'а)
   start.ts             # middleware TanStack Start
   styles.css           # Tailwind v4 + design tokens
 vite.config.ts         # пресет @lovable.dev/vite-tanstack-config
-wrangler.jsonc         # конфиг Cloudflare Worker
+wrangler.jsonc         # конфиг Cloudflare Worker (нужен только для деплоя)
+package.json
 ```
 
----
+Файл `src/routeTree.gen.ts` генерируется плагином TanStack Router автоматически — править его руками не нужно.
 
-## 6. Шпаргалка команд
+## Сброс прогресса курса
 
-```bash
-bun install              # установка зависимостей
-bun run dev              # Vite dev server (HMR)        → http://localhost:8080
-bun run build            # production-сборка
-bun run preview          # предпросмотр бандла          → http://localhost:4173
-bunx wrangler dev        # Worker runtime (после build) → http://localhost:8787
-bunx wrangler deploy     # ручной деплой в Cloudflare (опционально)
-bun run lint             # ESLint
-bun run format           # Prettier
-```
+Прогресс хранится в `localStorage` под ключом `infosec-course-progress-v1`.
 
-Готово — после `bun install && bun run dev` курс будет доступен на `http://localhost:8080`.
+- В UI: кнопка **«Начать заново»** на финальном экране.
+- Вручную: DevTools → Application → Local Storage → удалить ключ.
+  
+После `bun install && bun run dev` курс доступен на `http://localhost:8080`. Этого достаточно для разработки и прохождения курса локально.
